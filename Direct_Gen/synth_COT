@@ -1,0 +1,71 @@
+import os
+import json
+import copy
+import argparse
+from tqdm import tqdm
+from vllm import LLM, SamplingParams
+from datasets import load_dataset
+
+# Argument parsing to accept start and end index
+parser = argparse.ArgumentParser(description='Process chunks of the dataset.')
+parser.add_argument('start_index', type=int, help='The start index of the chunk.')
+parser.add_argument('end_index', type=int, help='The end index of the chunk.')
+args = parser.parse_args()
+
+# Load dataset
+math = load_dataset("NuminaMath-CoT")['train']
+
+# Initialize model and tokenizer
+model_name = "Qwen/QwQ-32B-Preview"
+llm = LLM(model=model_name, tensor_parallel_size=8)
+tokenizer = llm.get_tokenizer()
+sampling_params = SamplingParams(temperature=0.7, top_p=0.8, top_k=20, max_tokens=32768)
+
+# System message template
+SYSTEM = """
+Your role as an assistant involves thoroughly exploring questions through a systematic long thinking process before providing the final precise and accurate solutions. This requires engaging in a comprehensive cycle of analysis, summarizing, exploration, reassessment, reflection,
+backtracing, and iteration to develop well-considered thinking process.
+Please structure your response into two main sections: Thought and Solution.
+In the Thought section, detail your reasoning process using the specified format:
+“‘
+<|begin_of_thought|>
+{thought with steps separated with "\n\n"}
+<|end_of_thought|>
+”’
+Each step should include detailed considerations such as analysing questions, summarizing relevant findings, brainstorming new ideas, verifying the accuracy of the current steps, refining any errors, and revisiting previous steps.
+In the Solution section, based on various attempts, explorations, and reflections from the Thought section, systematically present the final solution that you deem correct. The solution should remain a logical, accurate, concise expression style and detail necessary step needed to reach the conclusion, formatted as follows:
+“‘
+<|begin_of_solution|>
+{final formatted, precise, and clear solution}
+<|end_of_solution|>
+”’
+"""
+
+# Function to generate and save solutions in specified range
+def generate_solutions_in_range(start_index, end_index):
+    # Convert the specified range of the Dataset to a list of dictionaries
+    chunk_data = math.select(range(start_index, end_index))
+    #print('math_type', type(math))
+    #print('chunk_data_type', type(chunk_data))
+
+    messages = []
+    for item in chunk_data:
+        #print(item)
+        question = item['problem']
+        information = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
+        message = tokenizer.apply_chat_template(information, tokenize=False, add_generation_prompt=True)
+        messages.append(message)
+
+    # Generate responses for this chunk
+    outputs = llm.generate(messages, sampling_params)
+
+    # Save the solutions in a new JSON file
+    file_name = f"/cpfs/29f69eb5e2e60f26/code/sft_intern/lh/gen_math/numina_math/qwq_Numina_{start_index}_{end_index}.json"
+    with open(file_name, 'w', encoding='utf-8') as f1:
+        for i, solution in enumerate(outputs):
+            data_item = copy.deepcopy(chunk_data[i])
+            data_item['qwq_solution'] = solution.outputs[0].text
+            f1.write(json.dumps(data_item, ensure_ascii=False) + '\n')
+
+# Run the function to process the specified range
+generate_solutions_in_range(args.start_index, args.end_index)
