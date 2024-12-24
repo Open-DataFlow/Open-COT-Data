@@ -1,4 +1,13 @@
 # Open-COT-Data
 
 ## 💥 News
-- **[2024.12.24]** 🔥 We released the **Math COT** data synthesized based on Math Dataset [🤗 Dataset]())
+- **[2024.12.24]** 🔥 We released the **Math COT** data synthesized based on Math Dataset [🤗 Dataset](https://huggingface.co/datasets/Open-COT-Data/COT-Dataset-Math))
+
+## 📌 ToDo
+
+- Coming soon: dataset and models
+
+## 👀 About Open COT Data
+COT Data enhances your model reasoning by directly finetuning them!
+Math COT Data (7500)
+
