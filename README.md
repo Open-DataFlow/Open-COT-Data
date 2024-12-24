@@ -5,7 +5,7 @@
 
 ## 📌 ToDo
 
-- Coming soon: dataset and models
+- Coming soon: More COT Data and MMCOT Data.
 
 ## 👀 About Open COT Data
 COT Data enhances your model reasoning by directly finetuning them!
